@@ -105,6 +105,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
             other.setFfmpegPath(getFfmpegPath());
             other.setMp4Crf(getMp4Crf());
             other.setMp4Preset(getMp4Preset());
+            other.setMp4Par(getMp4ParWidth(), getMp4ParHeight());
             return true;
         }
         return false;
@@ -329,6 +330,23 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         _sMp4Preset = val;
         firePossibleChange();
     }
+    private int _iMp4ParWidth = 1, _iMp4ParHeight = 1;
+    /** Pixel aspect ratio width. */
+    public int getMp4ParWidth() {
+        return _iMp4ParWidth;
+    }
+    /** Pixel aspect ratio height. */
+    public int getMp4ParHeight() {
+        return _iMp4ParHeight;
+    }
+    public void setMp4Par(int iWidth, int iHeight) {
+        if (iWidth < 1 || iHeight < 1)
+            throw new IllegalArgumentException("Invalid pixel aspect ratio " + iWidth + ":" + iHeight);
+        _iMp4ParWidth = iWidth;
+        _iMp4ParHeight = iHeight;
+        firePossibleChange();
+    }
+
     public int getMp4Preset_listSize() {
         return FfmpegEncoder.PRESETS.size();
     }
@@ -445,6 +463,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         tfb.addCell(c);
 
         tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_PAR()).addCell(I.CMD_VIDEO_PAR_HELP());
+
+        tfb.newRow();
         tfb.addCell(I.CMD_VIDEO_FRAMES()).addCell(I.CMD_VIDEO_FRAMES_HELP());
 
         if (_sourceVidItem.shouldBeCropped()) {
@@ -477,6 +498,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         StringHolder ffmpeg = ap.addStringOption("-ffmpeg");
         StringHolder crf = ap.addStringOption("-crf");
         StringHolder preset = ap.addStringOption("-preset");
+        StringHolder par = ap.addStringOption("-par");
 
         //BooleanHolder emulatefps = ap.addBoolOption(false, "-psxfps"); // Mutually excusive with fps...
 
@@ -579,6 +601,14 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(preset.value, "-preset"));
         }
 
+        if (par.value != null) {
+            int[] aiPar = FfmpegEncoder.parsePar(par.value);
+            if (aiPar != null)
+                setMp4Par(aiPar[0], aiPar[1]);
+            else
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(par.value, "-par"));
+        }
+
         setCrop(!nocrop.value);
     }
     @Override
@@ -587,8 +617,11 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
         log.log(Level.INFO, I.CMD_VIDEO_FORMAT(getVideoFormat().toString()));
 
-        if (getMp4Options_enabled())
+        if (getMp4Options_enabled()) {
             log.log(Level.INFO, I.CMD_MP4_ENCODER_SETTINGS(getMp4Crf(), getMp4Preset()));
+            if (getMp4ParWidth() != getMp4ParHeight())
+                log.log(Level.INFO, I.CMD_MP4_PAR(getMp4ParWidth(), getMp4ParHeight()));
+        }
 
         if (vidFmt.getDecodeQualityCount() > 0) {
             MdecDecodeQuality quality = getDecodeQuality();

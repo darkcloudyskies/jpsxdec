@@ -5738,6 +5738,45 @@ makes smaller files (default {0}). Options:</pre>
 
     /**
     <table border="1"><tr><td>
+    <pre>-par &lt;w:h&gt;</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PAR() {
+        return msg("CMD_VIDEO_PAR", "-par <w:h>");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Pixel aspect ratio of mp4 output (default 1:1).
+Use when the game displayed the video in a
+mode without square pixels (e.g. 8:7 for 256
+pixels wide).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PAR_HELP() {
+        return msg("CMD_VIDEO_PAR_HELP", "Pixel aspect ratio of mp4 output (default 1:1).\nUse when the game displayed the video in a\nmode without square pixels (e.g. 8:7 for 256\npixels wide).");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Pixel aspect ratio: {0,number,#}:{1,number,#}</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_MP4_PAR(int width, int height) {
+        return msg("CMD_MP4_PAR", "Pixel aspect ratio: {0,number,#}:{1,number,#}", width, height);
+    }
+
+    /**
+    <table border="1"><tr><td>
     <pre>ffmpeg is needed for mp4 output but was not found. Install ffmpeg or use -ffmpeg &lt;path&gt;.</pre>
     </td></tr></table>
     <ul>

@@ -87,6 +87,30 @@ public class FfmpegEncoderTest {
         Assert.assertFalse(cmd.contains("-c:a"));
     }
 
+    @Test
+    public void pixelAspectRatio() {
+        FfmpegEncoder square = new FfmpegEncoder(new File("ffmpeg"),
+                FfmpegEncoder.DEFAULT_CRF, FfmpegEncoder.DEFAULT_PRESET);
+        List<String> cmd = square.buildCommand(new File("in.avi"), new File("out.mp4"), false);
+        Assert.assertFalse(cmd.get(argIndex(cmd, "-vf") + 1).contains("setsar"));
+
+        FfmpegEncoder wide = new FfmpegEncoder(new File("ffmpeg"),
+                FfmpegEncoder.DEFAULT_CRF, FfmpegEncoder.DEFAULT_PRESET, 8, 7);
+        cmd = wide.buildCommand(new File("in.avi"), new File("out.mp4"), false);
+        Assert.assertTrue(cmd.get(argIndex(cmd, "-vf") + 1).endsWith(",setsar=8/7"));
+    }
+
+    @Test
+    public void parsePar() {
+        Assert.assertArrayEquals(new int[] {8, 7}, FfmpegEncoder.parsePar("8:7"));
+        Assert.assertArrayEquals(new int[] {32, 35}, FfmpegEncoder.parsePar(" 32 / 35 "));
+        Assert.assertNull(FfmpegEncoder.parsePar("8"));
+        Assert.assertNull(FfmpegEncoder.parsePar("8:0"));
+        Assert.assertNull(FfmpegEncoder.parsePar("-8:7"));
+        Assert.assertNull(FfmpegEncoder.parsePar("a:b"));
+        Assert.assertNull(FfmpegEncoder.parsePar("1:2:3"));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void invalidCrf() {
         new FfmpegEncoder(new File("ffmpeg"), FfmpegEncoder.MAX_CRF + 1, FfmpegEncoder.DEFAULT_PRESET);

@@ -242,7 +242,8 @@ public class VideoSaver {
             else
                 throw new LoggedFailure(log, Level.SEVERE, I.FFMPEG_NOT_FOUND());
         }
-        return new FfmpegEncoder(ffmpeg, _vsb.getMp4Crf(), _vsb.getMp4Preset());
+        return new FfmpegEncoder(ffmpeg, _vsb.getMp4Crf(), _vsb.getMp4Preset(),
+                                 _vsb.getMp4ParWidth(), _vsb.getMp4ParHeight());
     }
 
     private void shutdown() {

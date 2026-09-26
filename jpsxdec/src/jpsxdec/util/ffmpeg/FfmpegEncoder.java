@@ -107,15 +107,46 @@ public class FfmpegEncoder {
     private final int _iCrf;
     @Nonnull
     private final String _sPreset;
+    private final int _iParWidth, _iParHeight;
 
+    /** Square pixels. */
     public FfmpegEncoder(@Nonnull File ffmpeg, int iCrf, @Nonnull String sPreset) {
+        this(ffmpeg, iCrf, sPreset, 1, 1);
+    }
+
+    /** @param iParWidth,iParHeight Pixel aspect ratio (shape of each pixel)
+     *                              that players should display. */
+    public FfmpegEncoder(@Nonnull File ffmpeg, int iCrf, @Nonnull String sPreset,
+                         int iParWidth, int iParHeight)
+    {
         if (!isValidCrf(iCrf))
             throw new IllegalArgumentException("Invalid crf " + iCrf);
         if (!PRESETS.contains(sPreset))
             throw new IllegalArgumentException("Invalid preset " + sPreset);
+        if (iParWidth < 1 || iParHeight < 1)
+            throw new IllegalArgumentException("Invalid pixel aspect ratio " + iParWidth + ":" + iParHeight);
         _ffmpeg = ffmpeg;
         _iCrf = iCrf;
         _sPreset = sPreset;
+        _iParWidth = iParWidth;
+        _iParHeight = iParHeight;
+    }
+
+    /** Parses a pixel aspect ratio like "8:7" or "8/7".
+     * @return {width, height}, or null if invalid. */
+    public static @CheckForNull int[] parsePar(@Nonnull String sPar) {
+        String[] asParts = sPar.trim().split("[:/]");
+        if (asParts.length != 2)
+            return null;
+        try {
+            int iWidth = Integer.parseInt(asParts[0].trim());
+            int iHeight = Integer.parseInt(asParts[1].trim());
+            if (iWidth < 1 || iHeight < 1)
+                return null;
+            return new int[] {iWidth, iHeight};
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     public static boolean isValidCrf(int iCrf) {
@@ -139,9 +170,13 @@ public class FfmpegEncoder {
             Collections.addAll(cmd, "-map", "0:a:0");
         // PSX MDEC is BT.601 YCbCr with JPEG-style (centered) chroma siting.
         // The intermediate file is already limited range.
-        Collections.addAll(cmd, "-vf", "setparams=range=tv:colorspace=smpte170m"
-                                    + ":color_primaries=smpte170m:color_trc=smpte170m"
-                                    + ":chroma_location=center");
+        String sFilter = "setparams=range=tv:colorspace=smpte170m"
+                       + ":color_primaries=smpte170m:color_trc=smpte170m"
+                       + ":chroma_location=center";
+        // pixels are only stretched by players when displayed, no data is lost
+        if (_iParWidth != _iParHeight)
+            sFilter += ",setsar=" + _iParWidth + "/" + _iParHeight;
+        Collections.addAll(cmd, "-vf", sFilter);
         Collections.addAll(cmd, "-c:v", "libx264",
                                 "-preset", _sPreset,
                                 "-tune", "film",

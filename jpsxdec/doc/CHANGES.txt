@@ -1,7 +1,8 @@
 Unreleased
     - Added MP4 (H.264 + AAC) video output (-vf mp4), encoded with an
       external ffmpeg (found on the PATH or with -ffmpeg <path>).
-      Quality/speed set with -crf and -preset.
+      Quality/speed set with -crf and -preset, and non-square pixels
+      with -par.
 
 v2.1 (beta) rev4378 (17 May 2026)
     - Updated translations (thanks to the contributors!)
