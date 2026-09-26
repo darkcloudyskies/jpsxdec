@@ -68,6 +68,7 @@ public abstract class VideoSaverPanel<T extends VideoSaverBuilder> extends Parag
             new Crop(),
             new DecodeQuality(),
             new ChromaUpsampling(),
+            new Deblock(),
             new Mp4Crf(),
             new Mp4Preset()
         );
@@ -126,6 +127,34 @@ public abstract class VideoSaverPanel<T extends VideoSaverBuilder> extends Parag
         }
         protected boolean getEnabled() {
             return _bl.getBuilder().getChromaInterpolation_enabled();
+        }
+    }
+
+    private class Deblock extends ToggleButtonModel implements ChangeListener {
+        final JCheckBox __chk = new JCheckBox(I.GUI_DEBLOCK_CHECKBOX().getLocalizedMessage());
+        boolean __cur = isSelected();
+        public Deblock() {
+            __chk.setModel(null);
+            add(__chk, ParagraphLayout.NEW_PARAGRAPH);
+        }
+        public void stateChanged(ChangeEvent e) {
+            if (__chk.getModel() == null)
+                __chk.setModel(this);
+            if (isSelected() != __cur) {
+                __cur = isSelected();
+                fireStateChanged();
+                fireItemStateChanged(new ItemEvent(this, ItemEvent.ITEM_STATE_CHANGED, this,
+                        isSelected() ? ItemEvent.SELECTED : ItemEvent.DESELECTED));
+            }
+        }
+        public boolean isSelected() {
+            return _bl.getBuilder().getDeblock();
+        }
+        public void setSelected(boolean b) {
+            _bl.getBuilder().setDeblock(b);
+        }
+        public boolean isEnabled() {
+            return _bl.getBuilder().getDeblock_enabled();
         }
     }
 

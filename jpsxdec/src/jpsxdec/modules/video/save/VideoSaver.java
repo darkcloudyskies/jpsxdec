@@ -208,6 +208,7 @@ public class VideoSaver {
         if (vidDecoder instanceof MdecDecoder_double) {
             ChromaUpsample chroma = _vsb.getChromaInterpolation();
             ((MdecDecoder_double)vidDecoder).setUpsampler(chroma);
+            ((MdecDecoder_double)vidDecoder).setDeblock(_vsb.getDeblock());
         }
 
         VDP.Mdec2Decoded mdec2decode = new VDP.Mdec2Decoded(vidDecoder, log);

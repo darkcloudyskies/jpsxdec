@@ -100,6 +100,8 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 other.setDecodeQuality(getDecodeQuality());
             if (getChromaInterpolation_enabled())
                 other.setChromaInterpolation(getChromaInterpolation());
+            if (getDeblock_enabled())
+                other.setDeblock(getDeblock());
             if (getAudioVolume_enabled())
                 other.setAudioVolume(getAudioVolume());
             other.setFfmpegPath(getFfmpegPath());
@@ -287,6 +289,20 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
     // .........................................................................
 
+    private boolean _blnDeblock = false;
+    public boolean getDeblock_enabled() {
+        return getDecodeQuality() == MdecDecodeQuality.HIGH;
+    }
+    public boolean getDeblock() {
+        return getDeblock_enabled() && _blnDeblock;
+    }
+    public void setDeblock(boolean val) {
+        _blnDeblock = val;
+        firePossibleChange();
+    }
+
+    // .........................................................................
+
     /** null to search the PATH. */
     @CheckForNull
     private String _sFfmpegPath = null;
@@ -448,6 +464,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         tfb.addCell(c);
 
         tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_DEBLOCK()).addCell(I.CMD_VIDEO_DEBLOCK_HELP());
+
+        tfb.newRow();
         tfb.addCell(I.CMD_VIDEO_FFMPEG()).addCell(I.CMD_VIDEO_FFMPEG_HELP());
 
         tfb.newRow();
@@ -495,6 +514,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         StringHolder startFrame = ap.addStringOption("-start");
         StringHolder endFrame = ap.addStringOption("-end");
         StringHolder num = ap.addStringOption("-num");
+        BooleanHolder deblock = ap.addBoolOption(false, "-deblock");
         StringHolder ffmpeg = ap.addStringOption("-ffmpeg");
         StringHolder crf = ap.addStringOption("-crf");
         StringHolder preset = ap.addStringOption("-preset");
@@ -582,6 +602,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(up.value, "-up"));
         }
 
+        if (deblock.value)
+            setDeblock(true);
+
         if (ffmpeg.value != null)
             setFfmpegPath(ffmpeg.value);
 
@@ -630,6 +653,8 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 ChromaUpsample chroma = getChromaInterpolation();
                 log.log(Level.INFO, I.CMD_UPSAMPLE_QUALITY(chroma.getDescription().getLocalizedMessage()));
             }
+            if (getDeblock())
+                log.log(Level.INFO, I.CMD_DEBLOCKING());
         }
 
         if (getCrop_enabled())

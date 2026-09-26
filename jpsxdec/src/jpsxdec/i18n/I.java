@@ -5738,6 +5738,55 @@ makes smaller files (default {0}). Options:</pre>
 
     /**
     <table border="1"><tr><td>
+    <pre>-deblock</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_DEBLOCK() {
+        return msg("CMD_VIDEO_DEBLOCK", "-deblock");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Smooth out 8x8 block edges left by PSX
+compression (high quality decoding only).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_DEBLOCK_HELP() {
+        return msg("CMD_VIDEO_DEBLOCK_HELP", "Smooth out 8x8 block edges left by PSX\ncompression (high quality decoding only).");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Deblocking: on</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_DEBLOCKING() {
+        return msg("CMD_DEBLOCKING", "Deblocking: on");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Deblock</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverPanel.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage GUI_DEBLOCK_CHECKBOX() {
+        return msg("GUI_DEBLOCK_CHECKBOX", "Deblock");
+    }
+
+    /**
+    <table border="1"><tr><td>
     <pre>-par &lt;w:h&gt;</pre>
     </td></tr></table>
     <ul>
