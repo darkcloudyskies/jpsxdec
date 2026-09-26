@@ -75,7 +75,19 @@ public enum VideoFormat {
         public int getDecodeQualityCount() { return 1; }
         public MdecDecodeQuality getMdecDecodeQuality(int i) { return MdecDecodeQuality.HIGH; }
         public boolean mustHaveEvenDims()  { return true; }
-        public boolean isMp4() { return true; }
+        public boolean isFfmpegEncoded() { return true; }
+    },
+    /** Lossless, for video editors.
+     * Encoded by an external ffmpeg from a temporary {@link #AVI_YUV}.
+     * Not affected by the MKV_ENABLED flag since it isn't written by
+     * jPSXdec's own mkv writer. */
+    MKV_FFV1(I.VID_MKV_FFV1_DESCRIPTION(), "mkv:ffv1") {
+        public String getExtension() { return ".mkv"; }
+        public boolean isVideo() { return true; }
+        public int getDecodeQualityCount() { return 1; }
+        public MdecDecodeQuality getMdecDecodeQuality(int i) { return MdecDecodeQuality.HIGH; }
+        public boolean mustHaveEvenDims()  { return true; }
+        public boolean isFfmpegEncoded() { return true; }
     },
     AVI_MJPG(I.VID_AVI_MJPG_DESCRIPTION(), "avi:mjpg") {
         public String getExtension() { return ".avi"; }
@@ -190,7 +202,7 @@ public enum VideoFormat {
 
     public boolean isMkv() { return false; }
     /** If the video is encoded by ffmpeg. */
-    public boolean isMp4() { return false; }
+    public boolean isFfmpegEncoded() { return false; }
 
     /////////////////////////////////////////////////////////
 

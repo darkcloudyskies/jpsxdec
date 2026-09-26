@@ -5651,6 +5651,18 @@ to: {1}</pre>
 
     /**
     <table border="1"><tr><td>
+    <pre>MKV: lossless FFV1 for editing (needs ffmpeg)</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoFormat.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage VID_MKV_FFV1_DESCRIPTION() {
+        return msg("VID_MKV_FFV1_DESCRIPTION", "MKV: lossless FFV1 for editing (needs ffmpeg)");
+    }
+
+    /**
+    <table border="1"><tr><td>
     <pre>-ffmpeg &lt;path&gt;</pre>
     </td></tr></table>
     <ul>
@@ -5663,7 +5675,7 @@ to: {1}</pre>
 
     /**
     <table border="1"><tr><td>
-    <pre>Path to ffmpeg for mp4 output
+    <pre>Path to ffmpeg for mp4 and mkv:ffv1 output
 (default: search the PATH).</pre>
     </td></tr></table>
     <ul>
@@ -5671,7 +5683,7 @@ to: {1}</pre>
     </ul>
     */
     public static @Nonnull ILocalizedMessage CMD_VIDEO_FFMPEG_HELP() {
-        return msg("CMD_VIDEO_FFMPEG_HELP", "Path to ffmpeg for mp4 output\n(default: search the PATH).");
+        return msg("CMD_VIDEO_FFMPEG_HELP", "Path to ffmpeg for mp4 and mkv:ffv1 output\n(default: search the PATH).");
     }
 
     /**
@@ -5800,7 +5812,7 @@ decoding).</pre>
 
     /**
     <table border="1"><tr><td>
-    <pre>Pixel aspect ratio of mp4 output (default 1:1).
+    <pre>Pixel aspect ratio of mp4 and mkv:ffv1 output (default 1:1).
 Use when the game displayed the video in a
 mode without square pixels (e.g. 8:7 for 256
 pixels wide).</pre>
@@ -5810,7 +5822,7 @@ pixels wide).</pre>
     </ul>
     */
     public static @Nonnull ILocalizedMessage CMD_VIDEO_PAR_HELP() {
-        return msg("CMD_VIDEO_PAR_HELP", "Pixel aspect ratio of mp4 output (default 1:1).\nUse when the game displayed the video in a\nmode without square pixels (e.g. 8:7 for 256\npixels wide).");
+        return msg("CMD_VIDEO_PAR_HELP", "Pixel aspect ratio of mp4 and mkv:ffv1 output (default 1:1).\nUse when the game displayed the video in a\nmode without square pixels (e.g. 8:7 for 256\npixels wide).");
     }
 
     /**
@@ -5827,14 +5839,14 @@ pixels wide).</pre>
 
     /**
     <table border="1"><tr><td>
-    <pre>ffmpeg is needed for mp4 output but was not found. Install ffmpeg or use -ffmpeg &lt;path&gt;.</pre>
+    <pre>ffmpeg is needed for this video format but was not found. Install ffmpeg or use -ffmpeg &lt;path&gt;.</pre>
     </td></tr></table>
     <ul>
        <li>VideoSaver.java</li>
     </ul>
     */
     public static @Nonnull ILocalizedMessage FFMPEG_NOT_FOUND() {
-        return msg("FFMPEG_NOT_FOUND", "ffmpeg is needed for mp4 output but was not found. Install ffmpeg or use -ffmpeg <path>.");
+        return msg("FFMPEG_NOT_FOUND", "ffmpeg is needed for this video format but was not found. Install ffmpeg or use -ffmpeg <path>.");
     }
 
     /**

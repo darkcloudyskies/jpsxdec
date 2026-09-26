@@ -163,6 +163,7 @@ public class VideoSaver {
             } break;
 
             case MP4_H264:
+            case MKV_FFV1:
             case AVI_JYUV:
             case AVI_RGB:
             case AVI_YUV:
@@ -218,7 +219,7 @@ public class VideoSaver {
     private void startup(@Nonnull ILocalizedLogger log) throws LoggedFailure {
         VDPtoVideo video = _pipeline.getVideo();
         if (video != null) {
-            if (_videoFormat.isMp4())
+            if (_videoFormat.isFfmpegEncoded())
                 video.setFfmpegEncoder(makeFfmpegEncoder(log));
             try {
                 video.open();
@@ -243,7 +244,10 @@ public class VideoSaver {
             else
                 throw new LoggedFailure(log, Level.SEVERE, I.FFMPEG_NOT_FOUND());
         }
-        return new FfmpegEncoder(ffmpeg, _vsb.getMp4Crf(), _vsb.getMp4Preset(),
+        FfmpegEncoder.Target target = _videoFormat == VideoFormat.MKV_FFV1
+                                    ? FfmpegEncoder.Target.MKV_FFV1
+                                    : FfmpegEncoder.Target.MP4_H264;
+        return new FfmpegEncoder(ffmpeg, target, _vsb.getMp4Crf(), _vsb.getMp4Preset(),
                                  _vsb.getMp4ParWidth(), _vsb.getMp4ParHeight());
     }
 

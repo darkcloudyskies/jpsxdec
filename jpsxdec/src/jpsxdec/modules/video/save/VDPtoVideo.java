@@ -111,9 +111,9 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         }
     }
 
-    /** mp4 is first written as a Rec.601 YUV AVI, then encoded by ffmpeg. */
+    /** Formats encoded by ffmpeg are first written as a Rec.601 YUV AVI. */
     private boolean isRec601Yuv() {
-        return _videoFormat == VideoFormat.AVI_YUV || _videoFormat == VideoFormat.MP4_H264;
+        return _videoFormat == VideoFormat.AVI_YUV || _videoFormat.isFfmpegEncoded();
     }
 
     /** Returns the writer that should be closed in {@link #close()}. */
@@ -250,7 +250,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     private final File _writeFile;
     @CheckForNull
     private VDP.GeneratedFileListener _fileGenListener;
-    /** Required for mp4. */
+    /** Required for formats encoded by ffmpeg. */
     @CheckForNull
     private FfmpegEncoder _ffmpeg;
     private final int _iWidth, _iHeight;
@@ -305,12 +305,12 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     }
 
     private static @Nonnull File makeWriteFile(@Nonnull VideoFormat videoFormat, @Nonnull File outputFile) {
-        if (videoFormat.isMp4())
+        if (videoFormat.isFfmpegEncoded())
             return new File(outputFile.getPath() + ".tmp.avi");
         return outputFile;
     }
 
-    /** Must be set before opening mp4 output. */
+    /** Must be set before opening a format encoded by ffmpeg. */
     public void setFfmpegEncoder(@Nonnull FfmpegEncoder ffmpeg) {
         _ffmpeg = ffmpeg;
     }
@@ -318,6 +318,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     private static void assertValidFormat(VideoFormat videoFormat) {
         switch (videoFormat) {
             case MP4_H264:
+            case MKV_FFV1:
             case AVI_RGB:
             case AVI_YUV:
             case AVI_JYUV:
@@ -356,7 +357,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     public void open() throws LocalizedFileNotFoundException, FileNotFoundException, IOException {
         if (_writer != null)
             return;
-        if (_videoFormat.isMp4() && _ffmpeg == null)
+        if (_videoFormat.isFfmpegEncoded() && _ffmpeg == null)
             throw new IllegalStateException("ffmpeg encoder was not set");
         IO.makeDirsForFile(_outputFile);
         _writer = doOpen();
@@ -541,7 +542,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         }
     }
 
-    /** Closes the output file and, for mp4, encodes it with ffmpeg.
+    /** Closes the output file and encodes it with ffmpeg if needed.
      * Call only after everything was successfully written.
      * {@link #close()} should still be called afterwards. */
     public void finish() throws LoggedFailure {
@@ -578,7 +579,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
                 _writer.close();
             } finally {
                 _writer = null;
-                // the intermediate file of an incomplete mp4 is useless
+                // the intermediate file is useless if ffmpeg never ran
                 if (_ffmpeg != null && !_writeFile.delete())
                     LOG.log(Level.WARNING, "Unable to delete {0}", _writeFile);
             }

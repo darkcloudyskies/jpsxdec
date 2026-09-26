@@ -88,13 +88,28 @@ public class FfmpegEncoderTest {
     }
 
     @Test
+    public void losslessFfv1() {
+        FfmpegEncoder enc = new FfmpegEncoder(new File("ffmpeg"), FfmpegEncoder.Target.MKV_FFV1,
+                FfmpegEncoder.DEFAULT_CRF, FfmpegEncoder.DEFAULT_PRESET, 1, 1);
+        List<String> cmd = enc.buildCommand(new File("in.avi"), new File("out.mkv"), true);
+        Assert.assertEquals("ffv1", cmd.get(argIndex(cmd, "-c:v") + 1));
+        Assert.assertEquals("pcm_s16le", cmd.get(argIndex(cmd, "-c:a") + 1));
+        Assert.assertEquals("48000", cmd.get(argIndex(cmd, "-ar") + 1));
+        Assert.assertEquals("out.mkv", cmd.get(cmd.size() - 1));
+        // no lossy or mp4-only settings
+        Assert.assertFalse(cmd.contains("-crf"));
+        Assert.assertFalse(cmd.contains("-movflags"));
+        Assert.assertTrue(cmd.get(argIndex(cmd, "-vf") + 1).contains("range=tv"));
+    }
+
+    @Test
     public void pixelAspectRatio() {
         FfmpegEncoder square = new FfmpegEncoder(new File("ffmpeg"),
                 FfmpegEncoder.DEFAULT_CRF, FfmpegEncoder.DEFAULT_PRESET);
         List<String> cmd = square.buildCommand(new File("in.avi"), new File("out.mp4"), false);
         Assert.assertFalse(cmd.get(argIndex(cmd, "-vf") + 1).contains("setsar"));
 
-        FfmpegEncoder wide = new FfmpegEncoder(new File("ffmpeg"),
+        FfmpegEncoder wide = new FfmpegEncoder(new File("ffmpeg"), FfmpegEncoder.Target.MP4_H264,
                 FfmpegEncoder.DEFAULT_CRF, FfmpegEncoder.DEFAULT_PRESET, 8, 7);
         cmd = wide.buildCommand(new File("in.avi"), new File("out.mp4"), false);
         Assert.assertTrue(cmd.get(argIndex(cmd, "-vf") + 1).endsWith(",setsar=8/7"));

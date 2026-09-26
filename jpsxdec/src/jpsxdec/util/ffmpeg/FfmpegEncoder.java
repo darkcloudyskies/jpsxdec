@@ -53,7 +53,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /** Encodes a lossless intermediate video file (YV12 + PCM AVI) into an
- * H.264 + AAC MP4 by running an external ffmpeg executable.
+ * H.264 + AAC MP4 or a lossless FFV1 MKV by running an external ffmpeg
+ * executable. See {@link Target}.
  *
  * The decoded PSX frames are already 4:2:0 BT.601 YCbCr, so ffmpeg is only
  * told how to tag them (so players show the right colors) and how to
@@ -102,21 +103,34 @@ public class FfmpegEncoder {
         }
     }
 
+    /** What ffmpeg produces. */
+    public enum Target {
+        /** H.264 + AAC in MP4, for playing almost anywhere. */
+        MP4_H264,
+        /** Lossless FFV1 + 16-bit PCM in MKV, for editing (e.g. in DaVinci
+         * Resolve, which can't read 4:2:0 uncompressed AVI). */
+        MKV_FFV1,
+    }
+
     @Nonnull
     private final File _ffmpeg;
+    @Nonnull
+    private final Target _target;
     private final int _iCrf;
     @Nonnull
     private final String _sPreset;
     private final int _iParWidth, _iParHeight;
 
-    /** Square pixels. */
+    /** H.264 with square pixels. */
     public FfmpegEncoder(@Nonnull File ffmpeg, int iCrf, @Nonnull String sPreset) {
-        this(ffmpeg, iCrf, sPreset, 1, 1);
+        this(ffmpeg, Target.MP4_H264, iCrf, sPreset, 1, 1);
     }
 
-    /** @param iParWidth,iParHeight Pixel aspect ratio (shape of each pixel)
+    /** @param iCrf,sPreset         Only used for H.264.
+     *  @param iParWidth,iParHeight Pixel aspect ratio (shape of each pixel)
      *                              that players should display. */
-    public FfmpegEncoder(@Nonnull File ffmpeg, int iCrf, @Nonnull String sPreset,
+    public FfmpegEncoder(@Nonnull File ffmpeg, @Nonnull Target target,
+                         int iCrf, @Nonnull String sPreset,
                          int iParWidth, int iParHeight)
     {
         if (!isValidCrf(iCrf))
@@ -126,6 +140,7 @@ public class FfmpegEncoder {
         if (iParWidth < 1 || iParHeight < 1)
             throw new IllegalArgumentException("Invalid pixel aspect ratio " + iParWidth + ":" + iParHeight);
         _ffmpeg = ffmpeg;
+        _target = target;
         _iCrf = iCrf;
         _sPreset = sPreset;
         _iParWidth = iParWidth;
@@ -158,7 +173,7 @@ public class FfmpegEncoder {
     }
 
     /** Builds the ffmpeg command line to convert the intermediate file. */
-    public @Nonnull List<String> buildCommand(@Nonnull File inputAvi, @Nonnull File outputMp4,
+    public @Nonnull List<String> buildCommand(@Nonnull File inputAvi, @Nonnull File output,
                                               boolean blnHasAudio)
     {
         List<String> cmd = new ArrayList<String>();
@@ -177,29 +192,46 @@ public class FfmpegEncoder {
         if (_iParWidth != _iParHeight)
             sFilter += ",setsar=" + _iParWidth + "/" + _iParHeight;
         Collections.addAll(cmd, "-vf", sFilter);
-        Collections.addAll(cmd, "-c:v", "libx264",
-                                "-preset", _sPreset,
-                                "-tune", "film",
-                                "-crf", String.valueOf(_iCrf),
-                                // spend more bits on dark areas, which PSX video has a lot of
-                                "-x264-params", "aq-mode=3",
-                                "-pix_fmt", "yuv420p",
-                                "-profile:v", "high");
-        if (blnHasAudio) {
-            // PSX audio rates (37800, 18900) are poorly supported by AAC players
-            Collections.addAll(cmd, "-c:a", "aac", "-b:a", "192k", "-ar", "48000");
+        switch (_target) {
+            case MP4_H264:
+                Collections.addAll(cmd, "-c:v", "libx264",
+                                        "-preset", _sPreset,
+                                        "-tune", "film",
+                                        "-crf", String.valueOf(_iCrf),
+                                        // spend more bits on dark areas, which PSX video has a lot of
+                                        "-x264-params", "aq-mode=3",
+                                        "-pix_fmt", "yuv420p",
+                                        "-profile:v", "high");
+                // PSX audio rates (37800, 18900) are poorly supported by AAC players
+                if (blnHasAudio)
+                    Collections.addAll(cmd, "-c:a", "aac", "-b:a", "192k", "-ar", "48000");
+                Collections.addAll(cmd, "-movflags", "+faststart");
+                break;
+            case MKV_FFV1:
+                // version 3, every frame a keyframe, and checksums, as
+                // recommended for archiving and easy seeking in editors
+                Collections.addAll(cmd, "-c:v", "ffv1",
+                                        "-level", "3",
+                                        "-g", "1",
+                                        "-slices", "4",
+                                        "-slicecrc", "1");
+                // editors work at 48kHz
+                if (blnHasAudio)
+                    Collections.addAll(cmd, "-c:a", "pcm_s16le", "-ar", "48000");
+                break;
+            default:
+                throw new IllegalStateException("Unhandled target " + _target);
         }
-        Collections.addAll(cmd, "-movflags", "+faststart");
-        cmd.add(outputMp4.getPath());
+        cmd.add(output.getPath());
         return cmd;
     }
 
     /** Runs ffmpeg to completion.
      * On failure the (possibly partial) output file is deleted. */
-    public void encode(@Nonnull File inputAvi, @Nonnull File outputMp4, boolean blnHasAudio)
+    public void encode(@Nonnull File inputAvi, @Nonnull File output, boolean blnHasAudio)
             throws EncodeFailure
     {
-        List<String> cmd = buildCommand(inputAvi, outputMp4, blnHasAudio);
+        List<String> cmd = buildCommand(inputAvi, output, blnHasAudio);
         LOG.log(Level.INFO, "Running {0}", cmd);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
@@ -224,16 +256,16 @@ public class FfmpegEncoder {
             iExitCode = p.waitFor();
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Error running ffmpeg", ex);
-            deleteIfExists(outputMp4);
+            deleteIfExists(output);
             throw new EncodeFailure(-1, String.valueOf(ex.getMessage()));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            deleteIfExists(outputMp4);
+            deleteIfExists(output);
             throw new EncodeFailure(-1, "Interrupted");
         }
 
         if (iExitCode != 0) {
-            deleteIfExists(outputMp4);
+            deleteIfExists(output);
             StringBuilder sb = new StringBuilder();
             for (String sLine : tail) {
                 if (sb.length() > 0)

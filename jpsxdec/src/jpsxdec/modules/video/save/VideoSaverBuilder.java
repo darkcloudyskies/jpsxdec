@@ -314,8 +314,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         firePossibleChange();
     }
 
+    /** H.264 quality options. */
     public boolean getMp4Options_enabled() {
-        return getVideoFormat().isMp4();
+        return getVideoFormat() == VideoFormat.MP4_H264;
     }
 
     private int _iMp4Crf = FfmpegEncoder.DEFAULT_CRF;
@@ -640,11 +641,10 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
         log.log(Level.INFO, I.CMD_VIDEO_FORMAT(getVideoFormat().toString()));
 
-        if (getMp4Options_enabled()) {
+        if (getMp4Options_enabled())
             log.log(Level.INFO, I.CMD_MP4_ENCODER_SETTINGS(getMp4Crf(), getMp4Preset()));
-            if (getMp4ParWidth() != getMp4ParHeight())
-                log.log(Level.INFO, I.CMD_MP4_PAR(getMp4ParWidth(), getMp4ParHeight()));
-        }
+        if (vidFmt.isFfmpegEncoded() && getMp4ParWidth() != getMp4ParHeight())
+            log.log(Level.INFO, I.CMD_MP4_PAR(getMp4ParWidth(), getMp4ParHeight()));
 
         if (vidFmt.getDecodeQualityCount() > 0) {
             MdecDecodeQuality quality = getDecodeQuality();
