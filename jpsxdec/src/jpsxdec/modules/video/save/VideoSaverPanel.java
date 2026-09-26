@@ -67,7 +67,10 @@ public abstract class VideoSaverPanel<T extends VideoSaverBuilder> extends Parag
             new VideoFormatCombo(),
             new Crop(),
             new DecodeQuality(),
-            new ChromaUpsampling()
+            new ChromaUpsampling(),
+            new Deblock(),
+            new Mp4Crf(),
+            new Mp4Preset()
         );
     }
 
@@ -124,6 +127,72 @@ public abstract class VideoSaverPanel<T extends VideoSaverBuilder> extends Parag
         }
         protected boolean getEnabled() {
             return _bl.getBuilder().getChromaInterpolation_enabled();
+        }
+    }
+
+    private class Deblock extends ToggleButtonModel implements ChangeListener {
+        final JCheckBox __chk = new JCheckBox(I.GUI_DEBLOCK_CHECKBOX().getLocalizedMessage());
+        boolean __cur = isSelected();
+        public Deblock() {
+            __chk.setModel(null);
+            add(__chk, ParagraphLayout.NEW_PARAGRAPH);
+        }
+        public void stateChanged(ChangeEvent e) {
+            if (__chk.getModel() == null)
+                __chk.setModel(this);
+            if (isSelected() != __cur) {
+                __cur = isSelected();
+                fireStateChanged();
+                fireItemStateChanged(new ItemEvent(this, ItemEvent.ITEM_STATE_CHANGED, this,
+                        isSelected() ? ItemEvent.SELECTED : ItemEvent.DESELECTED));
+            }
+        }
+        public boolean isSelected() {
+            return _bl.getBuilder().getDeblock();
+        }
+        public void setSelected(boolean b) {
+            _bl.getBuilder().setDeblock(b);
+        }
+        public boolean isEnabled() {
+            return _bl.getBuilder().getDeblock_enabled();
+        }
+    }
+
+    private class Mp4Crf extends AbstractCombo<Integer> {
+        public Mp4Crf() { super(I.GUI_MP4_CRF_LABEL(), false); }
+        public int getSize() {
+            return _bl.getBuilder().getMp4Crf_listSize();
+        }
+        public Integer getElementAt(int index) {
+            return _bl.getBuilder().getMp4Crf_listItem(index);
+        }
+        public void setSelectedItem(Object anItem) {
+            _bl.getBuilder().setMp4Crf(((Integer) anItem).intValue());
+        }
+        public Integer getSelectedItem() {
+            return Integer.valueOf(_bl.getBuilder().getMp4Crf());
+        }
+        protected boolean getEnabled() {
+            return _bl.getBuilder().getMp4Options_enabled();
+        }
+    }
+
+    private class Mp4Preset extends AbstractCombo<String> {
+        public Mp4Preset() { super(I.GUI_MP4_PRESET_LABEL(), false); }
+        public int getSize() {
+            return _bl.getBuilder().getMp4Preset_listSize();
+        }
+        public String getElementAt(int index) {
+            return _bl.getBuilder().getMp4Preset_listItem(index);
+        }
+        public void setSelectedItem(Object anItem) {
+            _bl.getBuilder().setMp4Preset((String) anItem);
+        }
+        public String getSelectedItem() {
+            return _bl.getBuilder().getMp4Preset();
+        }
+        protected boolean getEnabled() {
+            return _bl.getBuilder().getMp4Options_enabled();
         }
     }
 

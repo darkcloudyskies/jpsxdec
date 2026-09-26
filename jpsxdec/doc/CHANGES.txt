@@ -1,3 +1,15 @@
+Unreleased
+    - Added MP4 (H.264 + AAC) video output (-vf mp4), encoded with an
+      external ffmpeg (found on the PATH or with -ffmpeg <path>).
+      Quality/speed set with -crf and -preset, and non-square pixels
+      with -par.
+    - Added lossless MKV output for video editors (-vf mkv:ffv1), FFV1 video
+      and 48kHz PCM audio, also encoded with ffmpeg. Unlike jPSXdec's
+      uncompressed AVIs, DaVinci Resolve can import it.
+    - Added deblocking for high quality decoding, which smooths 8x8 block
+      edges using each block's quantization scale. On by default, turn off
+      with -nodeblock or the GUI checkbox.
+
 v2.1 (beta) rev4378 (17 May 2026)
     - Updated translations (thanks to the contributors!)
     - Fixed documentation

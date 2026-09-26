@@ -39,6 +39,7 @@ package jpsxdec.psxvideo.mdec;
 
 import com.mortennobel.imagescaling.ResampleOp;
 import java.util.Arrays;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jpsxdec.formats.Pc601YCbCr;
 import jpsxdec.formats.Pc601YCbCrImage;
@@ -81,6 +82,13 @@ public class MdecDecoder_double extends MdecDecoder {
     @Nonnull
     private ChromaUpsample _upsampler = ChromaUpsample.Bicubic;
 
+    /** Quantizer of each 8x8 block of the last decoded frame, for deblocking. */
+    @Nonnull
+    private final double[] _adblLumaBlockQp, _adblCrBlockQp, _adblCbBlockQp;
+    /** null if deblocking is disabled. */
+    @CheckForNull
+    private MdecDeblocker _deblocker;
+
     public MdecDecoder_double(@Nonnull IDCT_double idct, int iWidth, int iHeight) {
         super(iWidth, iHeight);
         _idct = idct;
@@ -93,10 +101,20 @@ public class MdecDecoder_double extends MdecDecoder {
         _adblTempUpsampledCr = new double[_adblDecodedLumaBuffer.length];
 
         _resampler.setNumberOfThreads(1);
+
+        _adblLumaBlockQp = new double[(W / 8) * (H / 8)];
+        _adblCrBlockQp = new double[(CW / 8) * (CH / 8)];
+        _adblCbBlockQp = new double[_adblCrBlockQp.length];
     }
 
     public void setUpsampler(@Nonnull ChromaUpsample u) {
         _upsampler = u;
+    }
+
+    /** Smooth out 8x8 block edges caused by quantization after decoding.
+     * See {@link MdecDeblocker}. */
+    public void setDeblock(boolean blnDeblock) {
+        _deblocker = blnDeblock ? new MdecDeblocker() : null;
     }
 
     @Override
@@ -177,7 +195,7 @@ public class MdecDecoder_double extends MdecDecoder {
                     assert !DEBUG || debugPrintln(_code.toString());
 
                     writeEndOfBlock(context.getTotalMacroBlocksRead(), context.getCurrentBlock().ordinal(),
-                            iCurrentBlockNonZeroCount
+                            iCurrentBlockNonZeroCount, iCurrentBlockQscale
                     );
 
                     context.nextCodeEndBlock();
@@ -188,11 +206,17 @@ public class MdecDecoder_double extends MdecDecoder {
             // fill in any remaining data with zeros
             // pickup where decoding left off
             while (context.getTotalMacroBlocksRead() < _iTotalMacBlocks) {
-                writeEndOfBlock(context.getTotalMacroBlocksRead(), context.getCurrentBlock().ordinal(), 0);
+                writeEndOfBlock(context.getTotalMacroBlocksRead(), context.getCurrentBlock().ordinal(), 0, 0);
                 context.nextCodeEndBlock();
             }
 
             mdecInStream.logIfAny0AcCoefficient();
+        }
+
+        if (_deblocker != null) {
+            _deblocker.deblock(_adblDecodedLumaBuffer, W, H, _adblLumaBlockQp);
+            _deblocker.deblock(_adblDecodedCrBuffer, CW, CH, _adblCrBlockQp);
+            _deblocker.deblock(_dblDecodedCbBuffer, CW, CH, _adblCbBlockQp);
         }
     }
 
@@ -209,28 +233,36 @@ public class MdecDecoder_double extends MdecDecoder {
         return true;
     }
 
-    private void writeEndOfBlock(int iMacroBlock, int iBlock, int iNonZeroCount) {
+    /** @param iQscale 0 if the block was not decoded due to an error. */
+    private void writeEndOfBlock(int iMacroBlock, int iBlock, int iNonZeroCount, int iQscale) {
         assert !DEBUG || debugPrintPrequantBlock();
         assert !DEBUG || debugPrintBlock("Pre-IDCT block");
 
-        double[] outputBuffer;
+        double[] outputBuffer, blockQp;
         int iOutOffset, iOutWidth;
         switch (iBlock) {
             case 0:
                 outputBuffer = _adblDecodedCrBuffer;
+                blockQp = _adblCrBlockQp;
                 iOutOffset = _aiChromaMacBlkOfsLookup[iMacroBlock];
                 iOutWidth = CW;
                 break;
             case 1:
                 outputBuffer = _dblDecodedCbBuffer;
+                blockQp = _adblCbBlockQp;
                 iOutOffset = _aiChromaMacBlkOfsLookup[iMacroBlock];
                 iOutWidth = CW;
                 break;
             default:
                 outputBuffer = _adblDecodedLumaBuffer;
+                blockQp = _adblLumaBlockQp;
                 iOutOffset = _aiLumaBlkOfsLookup[iMacroBlock*4 + iBlock-2];
                 iOutWidth = W;
         }
+        // The deblocker's QP is based on a matrix value of 16 for the lowest
+        // AC coefficients, which is what the default PSX matrix uses
+        blockQp[(iOutOffset / iOutWidth / 8) * (iOutWidth / 8) + (iOutOffset % iOutWidth) / 8] =
+                iQscale * _aiQuantizationTable[1] / 16.0;
         if (iNonZeroCount == 0) {
             for (int i=0; i < 8; i++, iOutOffset += iOutWidth)
                 Arrays.fill(outputBuffer, iOutOffset, iOutOffset + 8, 0);

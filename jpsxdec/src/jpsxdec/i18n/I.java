@@ -5637,4 +5637,277 @@ to: {1}</pre>
         return msg("DIR_DOES_NOT_EXIST", "Directory {0} does not exist.", directoryName);
     }
 
+    /**
+    <table border="1"><tr><td>
+    <pre>MP4: H.264 (needs ffmpeg)</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoFormat.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage VID_MP4_H264_DESCRIPTION() {
+        return msg("VID_MP4_H264_DESCRIPTION", "MP4: H.264 (needs ffmpeg)");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>MKV: lossless FFV1 for editing (needs ffmpeg)</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoFormat.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage VID_MKV_FFV1_DESCRIPTION() {
+        return msg("VID_MKV_FFV1_DESCRIPTION", "MKV: lossless FFV1 for editing (needs ffmpeg)");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>-ffmpeg &lt;path&gt;</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_FFMPEG() {
+        return msg("CMD_VIDEO_FFMPEG", "-ffmpeg <path>");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Path to ffmpeg for mp4 and mkv:ffv1 output
+(default: search the PATH).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_FFMPEG_HELP() {
+        return msg("CMD_VIDEO_FFMPEG_HELP", "Path to ffmpeg for mp4 and mkv:ffv1 output\n(default: search the PATH).");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>-crf &lt;0-51&gt;</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_CRF() {
+        return msg("CMD_VIDEO_CRF", "-crf <0-51>");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>H.264 quality for mp4 output, lower is
+better (default {0,number,#}).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_CRF_HELP(int defaultCrf) {
+        return msg("CMD_VIDEO_CRF_HELP", "H.264 quality for mp4 output, lower is\nbetter (default {0,number,#}).", defaultCrf);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>-preset &lt;preset&gt;</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PRESET() {
+        return msg("CMD_VIDEO_PRESET", "-preset <preset>");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>H.264 encoding speed for mp4 output, slower
+makes smaller files (default {0}). Options:</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PRESET_HELP(@Nonnull String defaultPreset) {
+        return msg("CMD_VIDEO_PRESET_HELP", "H.264 encoding speed for mp4 output, slower\nmakes smaller files (default {0}). Options:", defaultPreset);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>H.264 quality (crf): {0,number,#}, preset: {1}</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_MP4_ENCODER_SETTINGS(int crf, @Nonnull String preset) {
+        return msg("CMD_MP4_ENCODER_SETTINGS", "H.264 quality (crf): {0,number,#}, preset: {1}", crf, preset);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>-nodeblock</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_NODEBLOCK() {
+        return msg("CMD_VIDEO_NODEBLOCK", "-nodeblock");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Do not smooth out the 8x8 block edges left by
+PSX compression (only done with high quality
+decoding).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_NODEBLOCK_HELP() {
+        return msg("CMD_VIDEO_NODEBLOCK_HELP", "Do not smooth out the 8x8 block edges left by\nPSX compression (only done with high quality\ndecoding).");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Deblocking: on</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_DEBLOCKING() {
+        return msg("CMD_DEBLOCKING", "Deblocking: on");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Deblock</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverPanel.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage GUI_DEBLOCK_CHECKBOX() {
+        return msg("GUI_DEBLOCK_CHECKBOX", "Deblock");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>-par &lt;w:h&gt;</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PAR() {
+        return msg("CMD_VIDEO_PAR", "-par <w:h>");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Pixel aspect ratio of mp4 and mkv:ffv1 output (default 1:1).
+Use when the game displayed the video in a
+mode without square pixels (e.g. 8:7 for 256
+pixels wide).</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_PAR_HELP() {
+        return msg("CMD_VIDEO_PAR_HELP", "Pixel aspect ratio of mp4 and mkv:ffv1 output (default 1:1).\nUse when the game displayed the video in a\nmode without square pixels (e.g. 8:7 for 256\npixels wide).");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Pixel aspect ratio: {0,number,#}:{1,number,#}</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverBuilder.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage CMD_MP4_PAR(int width, int height) {
+        return msg("CMD_MP4_PAR", "Pixel aspect ratio: {0,number,#}:{1,number,#}", width, height);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>ffmpeg is needed for this video format but was not found. Install ffmpeg or use -ffmpeg &lt;path&gt;.</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaver.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage FFMPEG_NOT_FOUND() {
+        return msg("FFMPEG_NOT_FOUND", "ffmpeg is needed for this video format but was not found. Install ffmpeg or use -ffmpeg <path>.");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>ffmpeg was not found at {0}</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaver.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage FFMPEG_NOT_FOUND_AT(@Nonnull String path) {
+        return msg("FFMPEG_NOT_FOUND_AT", "ffmpeg was not found at {0}", path);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>Encoding {0} with ffmpeg</pre>
+    </td></tr></table>
+    <ul>
+       <li>VDPtoVideo.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage FFMPEG_ENCODING(@Nonnull java.io.File file) {
+        return msg("FFMPEG_ENCODING", "Encoding {0} with ffmpeg", file);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>ffmpeg failed to create {0}. The uncompressed video was kept as {1}
+{2}</pre>
+    </td></tr></table>
+    <ul>
+       <li>VDPtoVideo.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage FFMPEG_ENCODE_FAILED(@Nonnull java.io.File outputFile, @Nonnull java.io.File keptFile, @Nonnull String ffmpegOutput) {
+        return msg("FFMPEG_ENCODE_FAILED", "ffmpeg failed to create {0}. The uncompressed video was kept as {1}\n{2}", outputFile, keptFile, ffmpegOutput);
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>H.264 quality (crf):</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverPanel.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage GUI_MP4_CRF_LABEL() {
+        return msg("GUI_MP4_CRF_LABEL", "H.264 quality (crf):");
+    }
+
+    /**
+    <table border="1"><tr><td>
+    <pre>H.264 preset:</pre>
+    </td></tr></table>
+    <ul>
+       <li>VideoSaverPanel.java</li>
+    </ul>
+    */
+    public static @Nonnull ILocalizedMessage GUI_MP4_PRESET_LABEL() {
+        return msg("GUI_MP4_PRESET_LABEL", "H.264 preset:");
+    }
+
 }

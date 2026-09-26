@@ -42,6 +42,7 @@ import argparser.StringHolder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -65,6 +66,7 @@ import jpsxdec.psxvideo.mdec.Calc;
 import jpsxdec.psxvideo.mdec.ChromaUpsample;
 import jpsxdec.util.ArgParser;
 import jpsxdec.util.TaskCanceledException;
+import jpsxdec.util.ffmpeg.FfmpegEncoder;
 
 /** Manages the common options for saving PSX video. */
 public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
@@ -98,8 +100,14 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 other.setDecodeQuality(getDecodeQuality());
             if (getChromaInterpolation_enabled())
                 other.setChromaInterpolation(getChromaInterpolation());
+            if (getDeblock_enabled())
+                other.setDeblock(getDeblock());
             if (getAudioVolume_enabled())
                 other.setAudioVolume(getAudioVolume());
+            other.setFfmpegPath(getFfmpegPath());
+            other.setMp4Crf(getMp4Crf());
+            other.setMp4Preset(getMp4Preset());
+            other.setMp4Par(getMp4ParWidth(), getMp4ParHeight());
             return true;
         }
         return false;
@@ -281,6 +289,90 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
     // .........................................................................
 
+    private boolean _blnDeblock = true;
+    public boolean getDeblock_enabled() {
+        return getDecodeQuality() == MdecDecodeQuality.HIGH;
+    }
+    public boolean getDeblock() {
+        return getDeblock_enabled() && _blnDeblock;
+    }
+    public void setDeblock(boolean val) {
+        _blnDeblock = val;
+        firePossibleChange();
+    }
+
+    // .........................................................................
+
+    /** null to search the PATH. */
+    @CheckForNull
+    private String _sFfmpegPath = null;
+    public @CheckForNull String getFfmpegPath() {
+        return _sFfmpegPath;
+    }
+    public void setFfmpegPath(@CheckForNull String val) {
+        _sFfmpegPath = val;
+        firePossibleChange();
+    }
+
+    /** H.264 quality options. */
+    public boolean getMp4Options_enabled() {
+        return getVideoFormat() == VideoFormat.MP4_H264;
+    }
+
+    private int _iMp4Crf = FfmpegEncoder.DEFAULT_CRF;
+    public int getMp4Crf() {
+        return _iMp4Crf;
+    }
+    public void setMp4Crf(int val) {
+        if (!FfmpegEncoder.isValidCrf(val))
+            throw new IllegalArgumentException("Invalid crf " + val);
+        _iMp4Crf = val;
+        firePossibleChange();
+    }
+    public int getMp4Crf_listSize() {
+        return FfmpegEncoder.MAX_CRF - FfmpegEncoder.MIN_CRF + 1;
+    }
+    public @Nonnull Integer getMp4Crf_listItem(int i) {
+        return Integer.valueOf(FfmpegEncoder.MIN_CRF + i);
+    }
+
+    @Nonnull
+    private String _sMp4Preset = FfmpegEncoder.DEFAULT_PRESET;
+    public @Nonnull String getMp4Preset() {
+        return _sMp4Preset;
+    }
+    public void setMp4Preset(@Nonnull String val) {
+        if (!FfmpegEncoder.PRESETS.contains(val))
+            throw new IllegalArgumentException("Invalid preset " + val);
+        _sMp4Preset = val;
+        firePossibleChange();
+    }
+    private int _iMp4ParWidth = 1, _iMp4ParHeight = 1;
+    /** Pixel aspect ratio width. */
+    public int getMp4ParWidth() {
+        return _iMp4ParWidth;
+    }
+    /** Pixel aspect ratio height. */
+    public int getMp4ParHeight() {
+        return _iMp4ParHeight;
+    }
+    public void setMp4Par(int iWidth, int iHeight) {
+        if (iWidth < 1 || iHeight < 1)
+            throw new IllegalArgumentException("Invalid pixel aspect ratio " + iWidth + ":" + iHeight);
+        _iMp4ParWidth = iWidth;
+        _iMp4ParHeight = iHeight;
+        firePossibleChange();
+    }
+
+    public int getMp4Preset_listSize() {
+        return FfmpegEncoder.PRESETS.size();
+    }
+    public @Nonnull String getMp4Preset_listItem(int i) {
+        return FfmpegEncoder.PRESETS.get(i);
+    }
+
+    // .........................................................................
+
     public boolean getFileNumberType_enabled() {
         return !getVideoFormat().isVideo();
     }
@@ -373,6 +465,27 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         tfb.addCell(c);
 
         tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_NODEBLOCK()).addCell(I.CMD_VIDEO_NODEBLOCK_HELP());
+
+        tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_FFMPEG()).addCell(I.CMD_VIDEO_FFMPEG_HELP());
+
+        tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_CRF()).addCell(I.CMD_VIDEO_CRF_HELP(FfmpegEncoder.DEFAULT_CRF));
+
+        tfb.newRow();
+
+        tfb.addCell(I.CMD_VIDEO_PRESET());
+        c = new Cell(I.CMD_VIDEO_PRESET_HELP(FfmpegEncoder.DEFAULT_PRESET));
+        for (String sPreset : FfmpegEncoder.PRESETS) {
+            c.addLine(new UnlocalizedMessage(sPreset), 2);
+        }
+        tfb.addCell(c);
+
+        tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_PAR()).addCell(I.CMD_VIDEO_PAR_HELP());
+
+        tfb.newRow();
         tfb.addCell(I.CMD_VIDEO_FRAMES()).addCell(I.CMD_VIDEO_FRAMES_HELP());
 
         if (_sourceVidItem.shouldBeCropped()) {
@@ -402,6 +515,11 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         StringHolder startFrame = ap.addStringOption("-start");
         StringHolder endFrame = ap.addStringOption("-end");
         StringHolder num = ap.addStringOption("-num");
+        BooleanHolder nodeblock = ap.addBoolOption(false, "-nodeblock");
+        StringHolder ffmpeg = ap.addStringOption("-ffmpeg");
+        StringHolder crf = ap.addStringOption("-crf");
+        StringHolder preset = ap.addStringOption("-preset");
+        StringHolder par = ap.addStringOption("-par");
 
         //BooleanHolder emulatefps = ap.addBoolOption(false, "-psxfps"); // Mutually excusive with fps...
 
@@ -485,6 +603,36 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(up.value, "-up"));
         }
 
+        if (nodeblock.value)
+            setDeblock(false);
+
+        if (ffmpeg.value != null)
+            setFfmpegPath(ffmpeg.value);
+
+        if (crf.value != null) {
+            try {
+                setMp4Crf(Integer.parseInt(crf.value));
+            } catch (IllegalArgumentException ex) { // includes NumberFormatException
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(crf.value, "-crf"));
+            }
+        }
+
+        if (preset.value != null) {
+            String sPreset = preset.value.toLowerCase(Locale.ENGLISH);
+            if (FfmpegEncoder.PRESETS.contains(sPreset))
+                setMp4Preset(sPreset);
+            else
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(preset.value, "-preset"));
+        }
+
+        if (par.value != null) {
+            int[] aiPar = FfmpegEncoder.parsePar(par.value);
+            if (aiPar != null)
+                setMp4Par(aiPar[0], aiPar[1]);
+            else
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(par.value, "-par"));
+        }
+
         setCrop(!nocrop.value);
     }
     @Override
@@ -493,6 +641,11 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
         log.log(Level.INFO, I.CMD_VIDEO_FORMAT(getVideoFormat().toString()));
 
+        if (getMp4Options_enabled())
+            log.log(Level.INFO, I.CMD_MP4_ENCODER_SETTINGS(getMp4Crf(), getMp4Preset()));
+        if (vidFmt.isFfmpegEncoded() && getMp4ParWidth() != getMp4ParHeight())
+            log.log(Level.INFO, I.CMD_MP4_PAR(getMp4ParWidth(), getMp4ParHeight()));
+
         if (vidFmt.getDecodeQualityCount() > 0) {
             MdecDecodeQuality quality = getDecodeQuality();
             log.log(Level.INFO, I.CMD_DECODE_QUALITY(quality.toString()));
@@ -500,6 +653,8 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 ChromaUpsample chroma = getChromaInterpolation();
                 log.log(Level.INFO, I.CMD_UPSAMPLE_QUALITY(chroma.getDescription().getLocalizedMessage()));
             }
+            if (getDeblock())
+                log.log(Level.INFO, I.CMD_DEBLOCKING());
         }
 
         if (getCrop_enabled())

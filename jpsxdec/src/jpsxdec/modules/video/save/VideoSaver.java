@@ -68,6 +68,7 @@ import jpsxdec.psxvideo.mdec.MdecDecoder_double;
 import jpsxdec.util.Fraction;
 import jpsxdec.util.IO;
 import jpsxdec.util.TaskCanceledException;
+import jpsxdec.util.ffmpeg.FfmpegEncoder;
 
 /** Constructs a {@link VDP Video decoding pipeline} from a
  * {@link VideoSaverBuilder} and performs the actual saving of video. */
@@ -161,6 +162,8 @@ public class VideoSaver {
                 _pipeline.setMdec2File(toVideo);
             } break;
 
+            case MP4_H264:
+            case MKV_FFV1:
             case AVI_JYUV:
             case AVI_RGB:
             case AVI_YUV:
@@ -206,6 +209,7 @@ public class VideoSaver {
         if (vidDecoder instanceof MdecDecoder_double) {
             ChromaUpsample chroma = _vsb.getChromaInterpolation();
             ((MdecDecoder_double)vidDecoder).setUpsampler(chroma);
+            ((MdecDecoder_double)vidDecoder).setDeblock(_vsb.getDeblock());
         }
 
         VDP.Mdec2Decoded mdec2decode = new VDP.Mdec2Decoded(vidDecoder, log);
@@ -215,6 +219,8 @@ public class VideoSaver {
     private void startup(@Nonnull ILocalizedLogger log) throws LoggedFailure {
         VDPtoVideo video = _pipeline.getVideo();
         if (video != null) {
+            if (_videoFormat.isFfmpegEncoded())
+                video.setFfmpegEncoder(makeFfmpegEncoder(log));
             try {
                 video.open();
             } catch (LocalizedFileNotFoundException ex) {
@@ -225,6 +231,24 @@ public class VideoSaver {
                 throw new LoggedFailure(log, Level.SEVERE, I.IO_WRITING_TO_FILE_ERROR_NAME(video.getOutputFile().toString()), ex);
             }
         }
+    }
+
+    /** Finds ffmpeg before any decoding is done so the user doesn't
+     * wait for nothing. */
+    private @Nonnull FfmpegEncoder makeFfmpegEncoder(@Nonnull ILocalizedLogger log) throws LoggedFailure {
+        String sUserPath = _vsb.getFfmpegPath();
+        File ffmpeg = FfmpegEncoder.locate(sUserPath);
+        if (ffmpeg == null) {
+            if (sUserPath != null)
+                throw new LoggedFailure(log, Level.SEVERE, I.FFMPEG_NOT_FOUND_AT(sUserPath));
+            else
+                throw new LoggedFailure(log, Level.SEVERE, I.FFMPEG_NOT_FOUND());
+        }
+        FfmpegEncoder.Target target = _videoFormat == VideoFormat.MKV_FFV1
+                                    ? FfmpegEncoder.Target.MKV_FFV1
+                                    : FfmpegEncoder.Target.MP4_H264;
+        return new FfmpegEncoder(ffmpeg, target, _vsb.getMp4Crf(), _vsb.getMp4Preset(),
+                                 _vsb.getMp4ParWidth(), _vsb.getMp4ParHeight());
     }
 
     private void shutdown() {
@@ -266,6 +290,10 @@ public class VideoSaver {
 
             it.flush(pl);
             sendLogEvent(pl, _frame2bsOrMdecFilter);
+
+            VDPtoVideo video = _pipeline.getVideo();
+            if (video != null)
+                video.finish();
 
             blnException = false;
         } finally {
