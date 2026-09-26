@@ -78,5 +78,6 @@ adding an `I.java` method (key + English default) and the same key in `i18n/Tran
 ## Contributing
 
 - Commit messages: imperative, capitalized subject ≤50 chars, no trailing period, body wrapped at 72.
-- Per `CONTRIBUTING.md`, code changes target the `master` branch (the `readme` branch is for the GitHub README/templates);
-  PRs are squash-merged. Contributions must be MIT or LGPL (or similar permissive) licensed.
+- `origin` is a personal fork (`darkcloudyskies/jpsxdec`); upstream is `m35/jpsxdec`. Work happens primarily in the fork.
+- `readme` is the only and default branch (upstream too); `CONTRIBUTING.md`'s mention of a `master` branch is outdated.
+- Upstream PRs are squash-merged. Contributions must be MIT or LGPL (or similar permissive) licensed.
