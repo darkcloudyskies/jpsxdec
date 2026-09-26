@@ -3,8 +3,9 @@ Unreleased
       external ffmpeg (found on the PATH or with -ffmpeg <path>).
       Quality/speed set with -crf and -preset, and non-square pixels
       with -par.
-    - Added optional deblocking (-deblock) for high quality decoding, which
-      smooths 8x8 block edges using each block's quantization scale.
+    - Added deblocking for high quality decoding, which smooths 8x8 block
+      edges using each block's quantization scale. On by default, turn off
+      with -nodeblock or the GUI checkbox.
 
 v2.1 (beta) rev4378 (17 May 2026)
     - Updated translations (thanks to the contributors!)

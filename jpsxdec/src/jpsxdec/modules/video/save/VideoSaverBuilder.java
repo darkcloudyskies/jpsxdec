@@ -289,7 +289,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
     // .........................................................................
 
-    private boolean _blnDeblock = false;
+    private boolean _blnDeblock = true;
     public boolean getDeblock_enabled() {
         return getDecodeQuality() == MdecDecodeQuality.HIGH;
     }
@@ -464,7 +464,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         tfb.addCell(c);
 
         tfb.newRow();
-        tfb.addCell(I.CMD_VIDEO_DEBLOCK()).addCell(I.CMD_VIDEO_DEBLOCK_HELP());
+        tfb.addCell(I.CMD_VIDEO_NODEBLOCK()).addCell(I.CMD_VIDEO_NODEBLOCK_HELP());
 
         tfb.newRow();
         tfb.addCell(I.CMD_VIDEO_FFMPEG()).addCell(I.CMD_VIDEO_FFMPEG_HELP());
@@ -514,7 +514,7 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         StringHolder startFrame = ap.addStringOption("-start");
         StringHolder endFrame = ap.addStringOption("-end");
         StringHolder num = ap.addStringOption("-num");
-        BooleanHolder deblock = ap.addBoolOption(false, "-deblock");
+        BooleanHolder nodeblock = ap.addBoolOption(false, "-nodeblock");
         StringHolder ffmpeg = ap.addStringOption("-ffmpeg");
         StringHolder crf = ap.addStringOption("-crf");
         StringHolder preset = ap.addStringOption("-preset");
@@ -602,8 +602,8 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(up.value, "-up"));
         }
 
-        if (deblock.value)
-            setDeblock(true);
+        if (nodeblock.value)
+            setDeblock(false);
 
         if (ffmpeg.value != null)
             setFfmpegPath(ffmpeg.value);

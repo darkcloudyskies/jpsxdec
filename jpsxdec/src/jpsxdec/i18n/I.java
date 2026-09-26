@@ -5738,27 +5738,28 @@ makes smaller files (default {0}). Options:</pre>
 
     /**
     <table border="1"><tr><td>
-    <pre>-deblock</pre>
+    <pre>-nodeblock</pre>
     </td></tr></table>
     <ul>
        <li>VideoSaverBuilder.java</li>
     </ul>
     */
-    public static @Nonnull ILocalizedMessage CMD_VIDEO_DEBLOCK() {
-        return msg("CMD_VIDEO_DEBLOCK", "-deblock");
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_NODEBLOCK() {
+        return msg("CMD_VIDEO_NODEBLOCK", "-nodeblock");
     }
 
     /**
     <table border="1"><tr><td>
-    <pre>Smooth out 8x8 block edges left by PSX
-compression (high quality decoding only).</pre>
+    <pre>Do not smooth out the 8x8 block edges left by
+PSX compression (only done with high quality
+decoding).</pre>
     </td></tr></table>
     <ul>
        <li>VideoSaverBuilder.java</li>
     </ul>
     */
-    public static @Nonnull ILocalizedMessage CMD_VIDEO_DEBLOCK_HELP() {
-        return msg("CMD_VIDEO_DEBLOCK_HELP", "Smooth out 8x8 block edges left by PSX\ncompression (high quality decoding only).");
+    public static @Nonnull ILocalizedMessage CMD_VIDEO_NODEBLOCK_HELP() {
+        return msg("CMD_VIDEO_NODEBLOCK_HELP", "Do not smooth out the 8x8 block edges left by\nPSX compression (only done with high quality\ndecoding).");
     }
 
     /**
