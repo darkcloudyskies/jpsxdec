@@ -42,6 +42,7 @@ import argparser.StringHolder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -65,6 +66,7 @@ import jpsxdec.psxvideo.mdec.Calc;
 import jpsxdec.psxvideo.mdec.ChromaUpsample;
 import jpsxdec.util.ArgParser;
 import jpsxdec.util.TaskCanceledException;
+import jpsxdec.util.ffmpeg.FfmpegEncoder;
 
 /** Manages the common options for saving PSX video. */
 public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
@@ -100,6 +102,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 other.setChromaInterpolation(getChromaInterpolation());
             if (getAudioVolume_enabled())
                 other.setAudioVolume(getAudioVolume());
+            other.setFfmpegPath(getFfmpegPath());
+            other.setMp4Crf(getMp4Crf());
+            other.setMp4Preset(getMp4Preset());
             return true;
         }
         return false;
@@ -281,6 +286,58 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
 
     // .........................................................................
 
+    /** null to search the PATH. */
+    @CheckForNull
+    private String _sFfmpegPath = null;
+    public @CheckForNull String getFfmpegPath() {
+        return _sFfmpegPath;
+    }
+    public void setFfmpegPath(@CheckForNull String val) {
+        _sFfmpegPath = val;
+        firePossibleChange();
+    }
+
+    public boolean getMp4Options_enabled() {
+        return getVideoFormat().isMp4();
+    }
+
+    private int _iMp4Crf = FfmpegEncoder.DEFAULT_CRF;
+    public int getMp4Crf() {
+        return _iMp4Crf;
+    }
+    public void setMp4Crf(int val) {
+        if (!FfmpegEncoder.isValidCrf(val))
+            throw new IllegalArgumentException("Invalid crf " + val);
+        _iMp4Crf = val;
+        firePossibleChange();
+    }
+    public int getMp4Crf_listSize() {
+        return FfmpegEncoder.MAX_CRF - FfmpegEncoder.MIN_CRF + 1;
+    }
+    public @Nonnull Integer getMp4Crf_listItem(int i) {
+        return Integer.valueOf(FfmpegEncoder.MIN_CRF + i);
+    }
+
+    @Nonnull
+    private String _sMp4Preset = FfmpegEncoder.DEFAULT_PRESET;
+    public @Nonnull String getMp4Preset() {
+        return _sMp4Preset;
+    }
+    public void setMp4Preset(@Nonnull String val) {
+        if (!FfmpegEncoder.PRESETS.contains(val))
+            throw new IllegalArgumentException("Invalid preset " + val);
+        _sMp4Preset = val;
+        firePossibleChange();
+    }
+    public int getMp4Preset_listSize() {
+        return FfmpegEncoder.PRESETS.size();
+    }
+    public @Nonnull String getMp4Preset_listItem(int i) {
+        return FfmpegEncoder.PRESETS.get(i);
+    }
+
+    // .........................................................................
+
     public boolean getFileNumberType_enabled() {
         return !getVideoFormat().isVideo();
     }
@@ -373,6 +430,21 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         tfb.addCell(c);
 
         tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_FFMPEG()).addCell(I.CMD_VIDEO_FFMPEG_HELP());
+
+        tfb.newRow();
+        tfb.addCell(I.CMD_VIDEO_CRF()).addCell(I.CMD_VIDEO_CRF_HELP(FfmpegEncoder.DEFAULT_CRF));
+
+        tfb.newRow();
+
+        tfb.addCell(I.CMD_VIDEO_PRESET());
+        c = new Cell(I.CMD_VIDEO_PRESET_HELP(FfmpegEncoder.DEFAULT_PRESET));
+        for (String sPreset : FfmpegEncoder.PRESETS) {
+            c.addLine(new UnlocalizedMessage(sPreset), 2);
+        }
+        tfb.addCell(c);
+
+        tfb.newRow();
         tfb.addCell(I.CMD_VIDEO_FRAMES()).addCell(I.CMD_VIDEO_FRAMES_HELP());
 
         if (_sourceVidItem.shouldBeCropped()) {
@@ -402,6 +474,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         StringHolder startFrame = ap.addStringOption("-start");
         StringHolder endFrame = ap.addStringOption("-end");
         StringHolder num = ap.addStringOption("-num");
+        StringHolder ffmpeg = ap.addStringOption("-ffmpeg");
+        StringHolder crf = ap.addStringOption("-crf");
+        StringHolder preset = ap.addStringOption("-preset");
 
         //BooleanHolder emulatefps = ap.addBoolOption(false, "-psxfps"); // Mutually excusive with fps...
 
@@ -485,6 +560,25 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
                 fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(up.value, "-up"));
         }
 
+        if (ffmpeg.value != null)
+            setFfmpegPath(ffmpeg.value);
+
+        if (crf.value != null) {
+            try {
+                setMp4Crf(Integer.parseInt(crf.value));
+            } catch (IllegalArgumentException ex) { // includes NumberFormatException
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(crf.value, "-crf"));
+            }
+        }
+
+        if (preset.value != null) {
+            String sPreset = preset.value.toLowerCase(Locale.ENGLISH);
+            if (FfmpegEncoder.PRESETS.contains(sPreset))
+                setMp4Preset(sPreset);
+            else
+                fbs.printlnWarn(I.CMD_IGNORING_INVALID_VALUE_FOR_CMD(preset.value, "-preset"));
+        }
+
         setCrop(!nocrop.value);
     }
     @Override
@@ -492,6 +586,9 @@ public abstract class VideoSaverBuilder extends DiscItemSaverBuilder {
         VideoFormat vidFmt = getVideoFormat();
 
         log.log(Level.INFO, I.CMD_VIDEO_FORMAT(getVideoFormat().toString()));
+
+        if (getMp4Options_enabled())
+            log.log(Level.INFO, I.CMD_MP4_ENCODER_SETTINGS(getMp4Crf(), getMp4Preset()));
 
         if (vidFmt.getDecodeQualityCount() > 0) {
             MdecDecodeQuality quality = getDecodeQuality();

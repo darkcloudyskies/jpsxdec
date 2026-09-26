@@ -71,6 +71,7 @@ import jpsxdec.util.aviwriter.AviWriter;
 import jpsxdec.util.aviwriter.AviWriterDIB;
 import jpsxdec.util.aviwriter.AviWriterMJPG;
 import jpsxdec.util.aviwriter.AviWriterYV12;
+import jpsxdec.util.ffmpeg.FfmpegEncoder;
 import jpsxdec.util.mkvwriter.IMkvWriter;
 import jpsxdec.util.mkvwriter.MkvJYuvWriter;
 import jpsxdec.util.mkvwriter.MkvMjpegWriter;
@@ -104,10 +105,15 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
 
     @Override
     public void assertAcceptsDecoded(@Nonnull MdecDecoder decoder) throws IllegalArgumentException {
-        if (_videoFormat == VideoFormat.AVI_YUV || _videoFormat == VideoFormat.AVI_JYUV || _videoFormat == VideoFormat.MKV_JYUV) {
+        if (isRec601Yuv() || _videoFormat == VideoFormat.AVI_JYUV || _videoFormat == VideoFormat.MKV_JYUV) {
             if (!(decoder instanceof MdecDecoder_double))
                 throw new IllegalArgumentException(_videoFormat + " requires a " + MdecDecoder_double.class.getName());
         }
+    }
+
+    /** mp4 is first written as a Rec.601 YUV AVI, then encoded by ffmpeg. */
+    private boolean isRec601Yuv() {
+        return _videoFormat == VideoFormat.AVI_YUV || _videoFormat == VideoFormat.MP4_H264;
     }
 
     /** Returns the writer that should be closed in {@link #close()}. */
@@ -121,12 +127,12 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
             else
                 _aviWriter = _aviDib = new AviWriterDIB(_outputFile, _iWidth, _iHeight, _vidSync.getFpsNum(), _vidSync.getFpsDenom(), _af);
             _rgbImgBuf = new RgbIntImage(_iWidth, _iHeight);
-        } else if (_videoFormat == VideoFormat.AVI_YUV || _videoFormat == VideoFormat.AVI_JYUV) {
+        } else if (isRec601Yuv() || _videoFormat == VideoFormat.AVI_JYUV) {
             if (_af == null)
-                _aviWriter = _aviYuv = new AviWriterYV12(_outputFile, _iWidth, _iHeight, _vidSync.getFpsNum(), _vidSync.getFpsDenom());
+                _aviWriter = _aviYuv = new AviWriterYV12(_writeFile, _iWidth, _iHeight, _vidSync.getFpsNum(), _vidSync.getFpsDenom());
             else
-                _aviWriter = _aviYuv = new AviWriterYV12(_outputFile, _iWidth, _iHeight, _vidSync.getFpsNum(), _vidSync.getFpsDenom(), _af);
-            if (_videoFormat == VideoFormat.AVI_YUV)
+                _aviWriter = _aviYuv = new AviWriterYV12(_writeFile, _iWidth, _iHeight, _vidSync.getFpsNum(), _vidSync.getFpsDenom(), _af);
+            if (isRec601Yuv())
                 _recYuvImgBuff = new Rec601YCbCrImage(_iWidth, _iHeight);
             else
                 _pcYuvImgBuff = new Pc601YCbCrImage(_iWidth, _iHeight);
@@ -160,7 +166,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         if (_videoFormat == VideoFormat.AVI_RGB) {
             RgbIntImage rgb = new RgbIntImage(bi);
             _aviDib.writeFrameRGB(rgb.getData(), 0, rgb.getWidth());
-        } else if (_videoFormat == VideoFormat.AVI_YUV) {
+        } else if (isRec601Yuv()) {
             Rec601YCbCrImage yuv = new Rec601YCbCrImage(bi);
             _aviYuv.write(yuv.getYBuff(), yuv.getCbBuff(), yuv.getCrBuff());
         } else if (_videoFormat == VideoFormat.AVI_JYUV) {
@@ -190,7 +196,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         if (_videoFormat == VideoFormat.AVI_RGB) {
             decoder.readDecodedRgb(_iWidth, _iHeight, _rgbImgBuf.getData());
             _aviDib.writeFrameRGB(_rgbImgBuf.getData(), 0, _iWidth);
-        } else if (_videoFormat == VideoFormat.AVI_YUV) {
+        } else if (isRec601Yuv()) {
             ((MdecDecoder_double)decoder).readDecoded_Rec601_YCbCr420(_recYuvImgBuff);
             _aviYuv.write(_recYuvImgBuff.getYBuff(), _recYuvImgBuff.getCbBuff(), _recYuvImgBuff.getCrBuff());
         } else if (_videoFormat == VideoFormat.AVI_JYUV) {
@@ -238,8 +244,15 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     private final VideoFormat _videoFormat;
     @Nonnull
     private final File _outputFile;
+    /** The file actually written to. Same as {@link #_outputFile} unless
+     * the output is encoded afterwards by ffmpeg. */
+    @Nonnull
+    private final File _writeFile;
     @CheckForNull
     private VDP.GeneratedFileListener _fileGenListener;
+    /** Required for mp4. */
+    @CheckForNull
+    private FfmpegEncoder _ffmpeg;
     private final int _iWidth, _iHeight;
     @Nonnull
     private final VideoSync _vidSync;
@@ -268,6 +281,7 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         assertValidFormat(videoFormat);
         _videoFormat = videoFormat;
         _outputFile = outputFile;
+        _writeFile = makeWriteFile(videoFormat, outputFile);
         _iWidth = iWidth; _iHeight = iHeight;
         _vidSync = vidSync; _avSync =  null;
         _af = null;
@@ -283,14 +297,27 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         assertValidFormat(videoFormat);
         _videoFormat = videoFormat;
         _outputFile = outputFile;
+        _writeFile = makeWriteFile(videoFormat, outputFile);
         _iWidth = iWidth; _iHeight = iHeight;
         _vidSync = _avSync = avSync;
         _af = af;
         _log = log;
     }
 
+    private static @Nonnull File makeWriteFile(@Nonnull VideoFormat videoFormat, @Nonnull File outputFile) {
+        if (videoFormat.isMp4())
+            return new File(outputFile.getPath() + ".tmp.avi");
+        return outputFile;
+    }
+
+    /** Must be set before opening mp4 output. */
+    public void setFfmpegEncoder(@Nonnull FfmpegEncoder ffmpeg) {
+        _ffmpeg = ffmpeg;
+    }
+
     private static void assertValidFormat(VideoFormat videoFormat) {
         switch (videoFormat) {
+            case MP4_H264:
             case AVI_RGB:
             case AVI_YUV:
             case AVI_JYUV:
@@ -329,6 +356,8 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
     public void open() throws LocalizedFileNotFoundException, FileNotFoundException, IOException {
         if (_writer != null)
             return;
+        if (_videoFormat.isMp4() && _ffmpeg == null)
+            throw new IllegalStateException("ffmpeg encoder was not set");
         IO.makeDirsForFile(_outputFile);
         _writer = doOpen();
         if (_fileGenListener != null)
@@ -512,10 +541,47 @@ public class VDPtoVideo implements Closeable, DecodedAudioPacket.Listener,
         }
     }
 
+    /** Closes the output file and, for mp4, encodes it with ffmpeg.
+     * Call only after everything was successfully written.
+     * {@link #close()} should still be called afterwards. */
+    public void finish() throws LoggedFailure {
+        if (_writer == null)
+            return;
+        Closeable writer = _writer;
+        _writer = null;
+        try {
+            writer.close();
+        } catch (IOException ex) {
+            throw new LoggedFailure(_log, Level.SEVERE, I.IO_WRITING_TO_FILE_ERROR_NAME(_writeFile.toString()), ex);
+        }
+
+        if (_ffmpeg != null) {
+            _log.log(Level.INFO, I.FFMPEG_ENCODING(_outputFile));
+            try {
+                _ffmpeg.encode(_writeFile, _outputFile, _af != null);
+            } catch (FfmpegEncoder.EncodeFailure ex) {
+                // keep the intermediate file so the work isn't lost
+                throw new LoggedFailure(_log, Level.SEVERE,
+                        I.FFMPEG_ENCODE_FAILED(_outputFile, _writeFile, ex.getOutputTail()), ex);
+            }
+            if (!_writeFile.delete())
+                LOG.log(Level.WARNING, "Unable to delete {0}", _writeFile);
+        }
+    }
+
+    /** Closes the output file if {@link #finish()} wasn't called
+     * (i.e. saving failed or was canceled). */
     @Override
     public void close() throws IOException {
         if (_writer != null) {
-            _writer.close();
+            try {
+                _writer.close();
+            } finally {
+                _writer = null;
+                // the intermediate file of an incomplete mp4 is useless
+                if (_ffmpeg != null && !_writeFile.delete())
+                    LOG.log(Level.WARNING, "Unable to delete {0}", _writeFile);
+            }
         }
     }
 

@@ -66,6 +66,7 @@ import org.junit.runners.Suite;
     jpsxdec.util.FractionTest.class,
     jpsxdec.util.IOTest.class,
     jpsxdec.util.MiscTest.class,
+    jpsxdec.util.ffmpeg.FfmpegEncoderTest.class,
     jpsxdec.util.mkvwriter.BasicVideoAudioMuxer_Tests.class,
     jpsxdec.util.mkvwriter.MkvWriter_Tests.class,
     jpsxdec.util.mkvwriter.VariableLengthInt_Tests.class,
